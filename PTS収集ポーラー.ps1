@@ -89,6 +89,8 @@ if ($isTest) {
     $endAt = $now.Date + [TimeSpan]::Parse($EndHHmm)
     if ($endAt -le $startAt) { $endAt = $endAt.AddDays(1) }
     if ($now -ge $endAt) { Write-Output "ウィンドウ終了済みのため何もしません"; exit 0 }
+    # 日付またぎの誤待機防止: 深夜などに起動された場合、当日ウィンドウまで90分超なら何もせず終了
+    if (($startAt - $now).TotalMinutes -gt 90) { Write-Output "開始まで90分超のため終了します(誤起動防止)"; exit 0 }
 }
 $hardStop = $now.AddMinutes($MaxMinutes)
 if ($endAt -gt $hardStop) { $endAt = $hardStop }
