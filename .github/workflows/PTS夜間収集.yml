@@ -41,7 +41,7 @@ jobs:
         run: |
           $t = 0
           if ($env:TEST_MINUTES) { $t = [int]$env:TEST_MINUTES }
-          ./PTS収集ポーラー.ps1 -DataDir ./data -StartHHmm "16:25" -EndHHmm "00:01" -SessionLabel "夜間" -MaxMinutes 340 -TestMinutes $t
+          ./PTS収集ポーラー.ps1 -DataDir ./data -StartHHmm "16:25" -EndHHmm "00:16" -SessionLabel "夜間" -MaxMinutes 340 -TestMinutes $t
 
   poll-2:
     needs: poll-1
@@ -67,7 +67,7 @@ jobs:
           TEST_MINUTES: ${{ inputs.test_minutes }}
         run: |
           if ($env:TEST_MINUTES) { Write-Output "test mode: skip"; exit 0 }
-          ./PTS収集ポーラー.ps1 -DataDir ./data -StartHHmm "16:25" -EndHHmm "00:01" -SessionLabel "夜間" -MaxMinutes 340 -TestMinutes 0
+          ./PTS収集ポーラー.ps1 -DataDir ./data -StartHHmm "16:25" -EndHHmm "00:16" -SessionLabel "夜間" -MaxMinutes 340 -TestMinutes 0
 
   poll-3:
     needs: poll-2
@@ -93,4 +93,4 @@ jobs:
           TEST_MINUTES: ${{ inputs.test_minutes }}
         run: |
           if ($env:TEST_MINUTES) { Write-Output "test mode: skip"; exit 0 }
-          ./PTS収集ポーラー.ps1 -DataDir ./data -StartHHmm "16:25" -EndHHmm "00:01" -SessionLabel "夜間" -MaxMinutes 340 -TestMinutes 0
+          ./PTS収集ポーラー.ps1 -DataDir ./data -StartHHmm "16:25" -EndHHmm "00:16" -SessionLabel "夜間" -MaxMinutes 340 -TestMinutes 0

@@ -20,7 +20,7 @@ permissions: {}
 jobs:
   poll:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 105
     steps:
       - uses: actions/checkout@v5
       - name: データリポジトリを準備
@@ -41,4 +41,4 @@ jobs:
         run: |
           $t = 0
           if ($env:TEST_MINUTES) { $t = [int]$env:TEST_MINUTES }
-          ./PTS収集ポーラー.ps1 -DataDir ./data -StartHHmm "08:18" -EndHHmm "09:02" -SessionLabel "寄り前" -MaxMinutes 80 -TestMinutes $t
+          ./PTS収集ポーラー.ps1 -DataDir ./data -StartHHmm "08:18" -EndHHmm "09:17" -SessionLabel "寄り前" -MaxMinutes 95 -TestMinutes $t
