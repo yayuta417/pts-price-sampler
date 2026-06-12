@@ -48,7 +48,10 @@ function Get-PtsSample {
         if ($vd -gt $now.AddDays(2)) { $vd = $vd.AddYears(-1) }   # 年跨ぎ補正
         return [PSCustomObject]@{ Sampled = $now; VenueTime = $vd; Price = $price }
     } catch {
-        Write-Output ("fetch error: {0}" -f $_.Exception.Message)
+        # 注意: 関数内でWrite-Outputすると戻り値に混入するため必ずWrite-Hostを使う
+        $sc = ""
+        try { if ($_.Exception.Response) { $sc = [string]$_.Exception.Response.StatusCode } } catch {}
+        Write-Host ("fetch error: {0} {1}" -f $sc, $_.Exception.Message)
         return $null
     }
 }
@@ -69,10 +72,10 @@ function Push-DataRepo {
     for ($i = 0; $i -lt 3; $i++) {
         git -C $DataDir pull --rebase origin main
         git -C $DataDir push origin main
-        if ($LASTEXITCODE -eq 0) { Write-Output "pushed: $msg"; return }
+        if ($LASTEXITCODE -eq 0) { Write-Host "pushed: $msg"; return }
         Start-Sleep -Seconds (10 + $i * 15)
     }
-    Write-Output "push failed after retries"
+    Write-Host "push failed after retries"
 }
 
 # ---------------- ウィンドウ決定 ----------------
@@ -108,7 +111,7 @@ $count = 0
 $lastPush = 0
 while ((Get-JstNow) -lt $endAt) {
     $s = Get-PtsSample $Code
-    if ($null -ne $s) {
+    if ($null -ne $s -and $null -ne $s.Sampled) {
         Add-Content -Path $csvPath -Value ("{0},{1},{2}" -f $s.Sampled.ToString("yyyy-MM-dd HH:mm:ss"), $s.VenueTime.ToString("yyyy-MM-dd HH:mm"), (Format-Price $s.Price)) -Encoding UTF8
         $count++
         if ($count % 10 -eq 0) { Write-Output ("{0} 件目 price={1} venue={2}" -f $count, $s.Price, $s.VenueTime.ToString("HH:mm")) }
