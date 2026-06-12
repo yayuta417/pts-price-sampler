@@ -1,0 +1,96 @@
+name: PTS夜間収集
+
+on:
+  schedule:
+    - cron: '5 7 * * 1-5'    # 16:05 JST (本体)
+    - cron: '20 7 * * 1-5'   # 16:20 JST (起動遅延時の保険。concurrencyで直列化)
+  workflow_dispatch:
+    inputs:
+      test_minutes:
+        description: 'immediate test poll duration (minutes)'
+        required: false
+        default: ''
+
+concurrency:
+  group: pts-night
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  poll-1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 358
+    steps:
+      - uses: actions/checkout@v4
+      - name: データリポジトリを準備
+        shell: bash
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.DATA_REPO_DEPLOY_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
+          git clone --depth 1 "git@github.com:${{ secrets.DATA_REPO }}.git" data
+          git -C data config user.name "pts-sampler[bot]"
+          git -C data config user.email "pts-sampler@users.noreply.github.com"
+      - name: サンプリング実行
+        shell: pwsh
+        env:
+          STOCK_CODE: ${{ secrets.STOCK_CODE }}
+          TEST_MINUTES: ${{ inputs.test_minutes }}
+        run: |
+          $t = 0
+          if ($env:TEST_MINUTES) { $t = [int]$env:TEST_MINUTES }
+          ./PTS収集ポーラー.ps1 -DataDir ./data -StartHHmm "16:25" -EndHHmm "00:01" -SessionLabel "夜間" -MaxMinutes 340 -TestMinutes $t
+
+  poll-2:
+    needs: poll-1
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 358
+    steps:
+      - uses: actions/checkout@v4
+      - name: データリポジトリを準備
+        shell: bash
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.DATA_REPO_DEPLOY_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
+          git clone --depth 1 "git@github.com:${{ secrets.DATA_REPO }}.git" data
+          git -C data config user.name "pts-sampler[bot]"
+          git -C data config user.email "pts-sampler@users.noreply.github.com"
+      - name: サンプリング実行(後半)
+        shell: pwsh
+        env:
+          STOCK_CODE: ${{ secrets.STOCK_CODE }}
+          TEST_MINUTES: ${{ inputs.test_minutes }}
+        run: |
+          if ($env:TEST_MINUTES) { Write-Output "test mode: skip"; exit 0 }
+          ./PTS収集ポーラー.ps1 -DataDir ./data -StartHHmm "16:25" -EndHHmm "00:01" -SessionLabel "夜間" -MaxMinutes 340 -TestMinutes 0
+
+  poll-3:
+    needs: poll-2
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 358
+    steps:
+      - uses: actions/checkout@v4
+      - name: データリポジトリを準備
+        shell: bash
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.DATA_REPO_DEPLOY_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
+          git clone --depth 1 "git@github.com:${{ secrets.DATA_REPO }}.git" data
+          git -C data config user.name "pts-sampler[bot]"
+          git -C data config user.email "pts-sampler@users.noreply.github.com"
+      - name: サンプリング実行(最終)
+        shell: pwsh
+        env:
+          STOCK_CODE: ${{ secrets.STOCK_CODE }}
+          TEST_MINUTES: ${{ inputs.test_minutes }}
+        run: |
+          if ($env:TEST_MINUTES) { Write-Output "test mode: skip"; exit 0 }
+          ./PTS収集ポーラー.ps1 -DataDir ./data -StartHHmm "16:25" -EndHHmm "00:01" -SessionLabel "夜間" -MaxMinutes 340 -TestMinutes 0

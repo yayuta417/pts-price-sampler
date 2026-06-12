@@ -1,0 +1,44 @@
+name: PTS寄り前収集
+
+on:
+  schedule:
+    - cron: '50 22 * * 0-4'  # 07:50 JST 月-金 (本体)
+    - cron: '0 23 * * 0-4'   # 08:00 JST (起動遅延時の保険)
+  workflow_dispatch:
+    inputs:
+      test_minutes:
+        description: 'immediate test poll duration (minutes)'
+        required: false
+        default: ''
+
+concurrency:
+  group: pts-morning
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: データリポジトリを準備
+        shell: bash
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.DATA_REPO_DEPLOY_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
+          git clone --depth 1 "git@github.com:${{ secrets.DATA_REPO }}.git" data
+          git -C data config user.name "pts-sampler[bot]"
+          git -C data config user.email "pts-sampler@users.noreply.github.com"
+      - name: サンプリング実行
+        shell: pwsh
+        env:
+          STOCK_CODE: ${{ secrets.STOCK_CODE }}
+          TEST_MINUTES: ${{ inputs.test_minutes }}
+        run: |
+          $t = 0
+          if ($env:TEST_MINUTES) { $t = [int]$env:TEST_MINUTES }
+          ./PTS収集ポーラー.ps1 -DataDir ./data -StartHHmm "08:18" -EndHHmm "09:02" -SessionLabel "寄り前" -MaxMinutes 80 -TestMinutes $t
